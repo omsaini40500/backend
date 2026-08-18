@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import uuid4
 from app.api.v1.deps import get_db, get_current_user
-from app.models import Department, Team, Client, Notification, ActivityLog, RecycleBinItem, User
+from app.models import Department, Team, Client, Notification, ActivityLog, RecycleBinItem, User, Project, Campaign
 from app.schemas import DepartmentOut, TeamOut, ClientOut, ClientCreate, ClientUpdate, NotificationOut, ActivityLogOut
 
 router_depts = APIRouter(prefix="/departments", tags=["departments"])
@@ -71,6 +71,11 @@ def delete_client(client_id: str, db: Session = Depends(get_db), current_user: U
     existing = db.query(Client).filter(Client.id == client_id).first()
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+        
+    db.query(User).filter(User.client_id == client_id).update({User.client_id: None})
+    db.query(Project).filter(Project.client_id == client_id).update({Project.client_id: None})
+    db.query(Campaign).filter(Campaign.client == existing.name).update({Campaign.client: None})
+    
     db.delete(existing)
     db.commit()
     return

@@ -62,6 +62,10 @@ app.include_router(announcements.router,  prefix="/api/v1")
 app.include_router(meetings.router,       prefix="/api/v1")
 app.include_router(automations.router,    prefix="/api/v1")
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Flash Agency API"}
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
