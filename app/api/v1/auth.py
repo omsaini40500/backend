@@ -88,16 +88,16 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        samesite="lax",
-        secure=False, # Set to True in production with HTTPS
+        samesite="none",
+        secure=True,
         max_age=settings.access_token_expire_minutes * 60
     )
     response.set_cookie(
         key="refresh_token",
         value=f"Bearer {refresh_token}",
         httponly=True,
-        samesite="lax",
-        secure=False,
+        samesite="none",
+        secure=True,
         max_age=settings.access_token_expire_minutes * 60 * 24 # 24 times longer for refresh
     )
     
@@ -135,16 +135,16 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
             key="access_token",
             value=f"Bearer {new_access}",
             httponly=True,
-            samesite="lax",
-            secure=False,
+            samesite="none",
+            secure=True,
             max_age=settings.access_token_expire_minutes * 60
         )
         response.set_cookie(
             key="refresh_token",
             value=f"Bearer {new_refresh}",
             httponly=True,
-            samesite="lax",
-            secure=False,
+            samesite="none",
+            secure=True,
             max_age=settings.access_token_expire_minutes * 60 * 24
         )
         
