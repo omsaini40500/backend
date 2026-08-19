@@ -183,7 +183,7 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     db.add(db_token)
     db.commit()
 
-    reset_link = f"https://task-management-system-two-orpin.vercel.app/reset-password?token={token}&email={user.email}"
+    reset_link = f"https://task-management-system-rbr9.vercel.app/reset-password?token={token}&email={user.email}"
     subject = "Reset your password - Flash Communications"
     html = f"""
     <!DOCTYPE html>
