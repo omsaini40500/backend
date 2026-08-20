@@ -62,8 +62,9 @@ def create_user(
 ):
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
+    import uuid
     user = User(
-        id=f"u{len(db.query(User).all()) + 1:02d}",
+        id=f"u{uuid.uuid4().hex[:8]}",
         name=data.name,
         email=data.email,
         hashed_password=get_password_hash(data.password or "demo"),
