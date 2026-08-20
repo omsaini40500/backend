@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(extra='ignore', env_file='.env')
 
-    cors_origins: str = "http://localhost:5173,http://localhost:3000,http://localhost:8443,https://task-management-system-two-orpin.vercel.app,https://task-management-system-btsgelcvh-om-sainis-projects-f19138e9.vercel.app"
+    cors_origins: str = "http://localhost:5173,http://localhost:3000,http://localhost:8443,https://task-management-system-eight-vert.vercel.app"
     secret_key: str = "supersecretkey"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 8
