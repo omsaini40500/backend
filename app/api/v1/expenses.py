@@ -34,13 +34,15 @@ class ExpenseOut(BaseModel):
 
 @router.get("/", response_model=List[ExpenseOut])
 def read_expenses(
+    skip: int = 0,
+    limit: int = 1000,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role != "super_admin":
         raise HTTPException(status_code=403, detail="Only super admin can view expenses")
 
-    expenses = db.query(Expense).order_by(Expense.date.desc()).all()
+    expenses = db.query(Expense).order_by(Expense.date.desc()).offset(skip).limit(limit).all()
     return [
         {
             "id": e.id,
