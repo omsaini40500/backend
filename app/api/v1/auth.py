@@ -176,8 +176,8 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
 
 @router.post("/logout")
 def logout(request: Request, response: Response, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie("access_token", samesite="none", secure=True, httponly=True)
+    response.delete_cookie("refresh_token", samesite="none", secure=True, httponly=True)
     
     # Log the activity
     from app.services.activity import log_activity
