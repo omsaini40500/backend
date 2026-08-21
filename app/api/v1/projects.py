@@ -125,7 +125,7 @@ def create_project(
     log_activity(
         db=db,
         user_id=current_user.id,
-        user_name=f"{current_user.first_name} {current_user.last_name}",
+        user_name=current_user.name,
         action="Created project",
         target=project.name,
         module="Projects"
@@ -164,7 +164,7 @@ def update_project(
     log_activity(
         db=db,
         user_id=current_user.id,
-        user_name=f"{current_user.first_name} {current_user.last_name}",
+        user_name=current_user.name,
         action="Status changed" if old_status != project.status else "Updated project",
         target=project.name,
         module="Projects",

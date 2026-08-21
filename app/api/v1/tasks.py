@@ -194,7 +194,7 @@ def create_task(
     log_activity(
         db=db,
         user_id=current_user.id,
-        user_name=f"{current_user.first_name} {current_user.last_name}",
+        user_name=current_user.name,
         action="Created task",
         target=task.title,
         module="Tasks"
@@ -242,7 +242,7 @@ def update_task(
     log_activity(
         db=db,
         user_id=current_user.id,
-        user_name=f"{current_user.first_name} {current_user.last_name}",
+        user_name=current_user.name,
         action=action_name,
         target=task.title,
         module="Tasks",

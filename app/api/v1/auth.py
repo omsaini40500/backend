@@ -113,7 +113,7 @@ def login(request: Request, response: Response, form_data: OAuth2PasswordRequest
     log_activity(
         db=db,
         user_id=user.id,
-        user_name=f"{user.first_name} {user.last_name}",
+        user_name=user.name,
         action="User login",
         target="System",
         module="Authentication",
@@ -187,7 +187,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db), 
     log_activity(
         db=db,
         user_id=current_user.id,
-        user_name=f"{current_user.first_name} {current_user.last_name}",
+        user_name=current_user.name,
         action="User logout",
         target="System",
         module="Authentication",
