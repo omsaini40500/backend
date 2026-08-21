@@ -139,8 +139,24 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     from sqlalchemy import text
+    # Delete associations and records owned solely by the user
     db.execute(text("DELETE FROM project_team_members WHERE user_id = :uid"), {"uid": user_id})
     db.execute(text("DELETE FROM task_assignees WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM task_watchers WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM notifications WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM reset_tokens WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM activity_logs WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM leave_requests WHERE user_id = :uid"), {"uid": user_id})
+
+    # Re-assign critical business records to the admin performing the deletion to preserve them
+    admin_id = current_user.id
+    db.execute(text("UPDATE projects SET manager_id = :admin WHERE manager_id = :uid"), {"admin": admin_id, "uid": user_id})
+    db.execute(text("UPDATE tasks SET assigned_by = :admin WHERE assigned_by = :uid"), {"admin": admin_id, "uid": user_id})
+    db.execute(text("UPDATE expenses SET created_by = :admin WHERE created_by = :uid"), {"admin": admin_id, "uid": user_id})
+    db.execute(text("UPDATE campaigns SET created_by = :admin WHERE created_by = :uid"), {"admin": admin_id, "uid": user_id})
+    db.execute(text("UPDATE approvals SET requester_id = :admin WHERE requester_id = :uid"), {"admin": admin_id, "uid": user_id})
+    db.execute(text("UPDATE meetings SET created_by = :admin WHERE created_by = :uid"), {"admin": admin_id, "uid": user_id})
+    db.execute(text("UPDATE recycle_bin SET deleted_by = :admin WHERE deleted_by = :uid"), {"admin": admin_id, "uid": user_id})
 
     db.delete(user)
     db.commit()
