@@ -93,16 +93,14 @@ def login(request: Request, response: Response, form_data: OAuth2PasswordRequest
         value=f"Bearer {access_token}",
         httponly=True,
         samesite="none",
-        secure=True,
-        max_age=settings.access_token_expire_minutes * 60
+        secure=True
     )
     response.set_cookie(
         key="refresh_token",
         value=f"Bearer {refresh_token}",
         httponly=True,
         samesite="none",
-        secure=True,
-        max_age=settings.access_token_expire_minutes * 60 * 24 # 24 times longer for refresh
+        secure=True
     )
 
     # Log the activity
@@ -156,16 +154,14 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
             value=f"Bearer {new_access}",
             httponly=True,
             samesite="none",
-            secure=True,
-            max_age=settings.access_token_expire_minutes * 60
+            secure=True
         )
         response.set_cookie(
             key="refresh_token",
             value=f"Bearer {new_refresh}",
             httponly=True,
             samesite="none",
-            secure=True,
-            max_age=settings.access_token_expire_minutes * 60 * 24
+            secure=True
         )
         
         return {"access_token": new_access, "refresh_token": new_refresh, "token_type": "bearer"}
