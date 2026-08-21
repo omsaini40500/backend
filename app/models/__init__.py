@@ -106,6 +106,7 @@ class Task(Base):
     status = Column(String(50))
     progress = Column(Integer)
     estimated_hours = Column(Float)
+    estimated_days = Column(Float)
     spent_hours = Column(Float)
     assigned_by = Column(String(50), ForeignKey("users.id"), nullable=True)
     project_id = Column(String(50), ForeignKey("projects.id"))

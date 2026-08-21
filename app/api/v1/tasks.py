@@ -19,6 +19,7 @@ class TaskCreate(CamelModel):
     status: str = "todo"
     progress: int = 0
     estimated_hours: float = 0
+    estimated_days: float = 0
     spent_hours: float = 0
     project_id: Optional[str] = None
     department_id: Optional[str] = None
@@ -35,6 +36,7 @@ class TaskUpdate(CamelModel):
     status: Optional[str] = None
     progress: Optional[int] = None
     estimated_hours: Optional[float] = None
+    estimated_days: Optional[float] = None
     spent_hours: Optional[float] = None
     project_id: Optional[str] = None
     department_id: Optional[str] = None
@@ -62,9 +64,10 @@ def _serialize(task: Task, db: Session = None) -> dict:
         "description": task.description or "",
         "priority": task.priority,
         "status": task.status,
-        "progress": task.progress,
-        "estimatedHours": task.estimated_hours,
-        "spentHours": task.spent_hours,
+        "progress": task.progress or 0,
+        "estimatedHours": task.estimated_hours or 0,
+        "estimatedDays": task.estimated_days or 0,
+        "spentHours": task.spent_hours or 0,
         "assignedBy": task.assigned_by_user.name if task.assigned_by_user else task.assigned_by,
         "projectId": task.project_id,
         "departmentId": task.department_id,
