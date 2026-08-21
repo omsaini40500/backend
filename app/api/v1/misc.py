@@ -117,42 +117,9 @@ router_activity_logs = APIRouter(prefix="/activity-logs", tags=["activity-logs"]
 def read_logs(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role not in ("super_admin", "admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
-    logs = db.query(ActivityLog).all()
+    logs = db.query(ActivityLog).order_by(ActivityLog.created_at.desc()).all()
     result = []
     
-    if not logs:
-        # Provide some dummy data to show the feature works
-        import uuid
-        from datetime import datetime
-        result.append({
-            "id": str(uuid.uuid4())[:8],
-            "user": "System Admin",
-            "userId": current_user.id,
-            "action": "System settings updated",
-            "target": "Security Policy",
-            "module": "Settings",
-            "oldValue": "Standard",
-            "newValue": "Strict",
-            "ip": "192.168.1.1",
-            "browser": "Chrome",
-            "location": "Server Room",
-            "timestamp": datetime.now().strftime("%b %d, %Y %I:%M %p")
-        })
-        result.append({
-            "id": str(uuid.uuid4())[:8],
-            "user": "System Admin",
-            "userId": current_user.id,
-            "action": "Created project",
-            "target": "Website Redesign",
-            "module": "Projects",
-            "oldValue": None,
-            "newValue": None,
-            "ip": "192.168.1.1",
-            "browser": "Chrome",
-            "location": "Server Room",
-            "timestamp": datetime.now().strftime("%b %d, %Y %I:%M %p")
-        })
-        
     for l in logs:
         result.append({
             "id": l.id,

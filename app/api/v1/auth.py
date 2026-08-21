@@ -73,7 +73,7 @@ def _generate_reset_token() -> str:
 _reset_tokens: dict = {}
 
 @router.post("/login", response_model=Token)
-def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -103,6 +103,22 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
         samesite="none",
         secure=True,
         max_age=settings.access_token_expire_minutes * 60 * 24 # 24 times longer for refresh
+    )
+
+    # Log the activity
+    from app.services.activity import log_activity
+    ip = request.client.host if request.client else "127.0.0.1"
+    browser = request.headers.get("user-agent", "Unknown")
+    
+    log_activity(
+        db=db,
+        user_id=user.id,
+        user_name=f"{user.first_name} {user.last_name}",
+        action="User login",
+        target="System",
+        module="Authentication",
+        ip=ip,
+        browser=browser
     )
     
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
@@ -159,9 +175,26 @@ def refresh_token_endpoint(request: Request, response: Response, db: Session = D
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
+    
+    # Log the activity
+    from app.services.activity import log_activity
+    ip = request.client.host if request.client else "127.0.0.1"
+    browser = request.headers.get("user-agent", "Unknown")
+    
+    log_activity(
+        db=db,
+        user_id=current_user.id,
+        user_name=f"{current_user.first_name} {current_user.last_name}",
+        action="User logout",
+        target="System",
+        module="Authentication",
+        ip=ip,
+        browser=browser
+    )
+    
     return {"message": "Logged out successfully"}
 
 @router.post("/forgot-password")

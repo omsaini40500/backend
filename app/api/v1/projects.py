@@ -120,6 +120,17 @@ def create_project(
         if u:
             project.team_members.append(u)
     db.commit()
+    
+    from app.services.activity import log_activity
+    log_activity(
+        db=db,
+        user_id=current_user.id,
+        user_name=f"{current_user.first_name} {current_user.last_name}",
+        action="Created project",
+        target=project.name,
+        module="Projects"
+    )
+    
     return _serialize(project, db)
 
 @router.patch("/{project_id}", dependencies=[Depends(RequirePermission("projects.update"))])
@@ -135,6 +146,9 @@ def update_project(
     if current_user.role not in ("super_admin", "admin") and project.manager_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this project")
     update_data = data.model_dump(exclude_none=True)
+    
+    old_status = project.status
+    
     if "team" in update_data:
         project.team_members = []
         for uid in update_data.pop("team"):
@@ -145,6 +159,19 @@ def update_project(
         setattr(project, field, value)
     db.commit()
     db.refresh(project)
+    
+    from app.services.activity import log_activity
+    log_activity(
+        db=db,
+        user_id=current_user.id,
+        user_name=f"{current_user.first_name} {current_user.last_name}",
+        action="Status changed" if old_status != project.status else "Updated project",
+        target=project.name,
+        module="Projects",
+        old_value=old_status if old_status != project.status else None,
+        new_value=project.status if old_status != project.status else None
+    )
+    
     return _serialize(project, db)
 
 @router.delete("/{project_id}", status_code=204, dependencies=[Depends(RequirePermission("projects.delete"))])

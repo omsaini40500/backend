@@ -189,6 +189,17 @@ def create_task(
         if u:
             task.assignees.append(u)
     db.commit()
+    
+    from app.services.activity import log_activity
+    log_activity(
+        db=db,
+        user_id=current_user.id,
+        user_name=f"{current_user.first_name} {current_user.last_name}",
+        action="Created task",
+        target=task.title,
+        module="Tasks"
+    )
+    
     return _serialize(task, db)
 
 @router.patch("/{task_id}", dependencies=[Depends(RequirePermission("tasks.update"))])
@@ -203,6 +214,9 @@ def update_task(
         raise HTTPException(status_code=404, detail="Task not found")
     if current_user.role not in ("super_admin", "admin") and task.assigned_by != current_user.id and current_user.id not in [a.id for a in task.assignees]:
         raise HTTPException(status_code=403, detail="Not authorized to update this task")
+        
+    old_status = task.status
+        
     for field, value in data.model_dump(exclude_none=True).items():
         if field == "tags":
             task.tags = ",".join(value) if value else ""
@@ -216,6 +230,26 @@ def update_task(
             setattr(task, field, value)
     db.commit()
     db.refresh(task)
+    
+    from app.services.activity import log_activity
+    if old_status != task.status and task.status == "completed":
+        action_name = "Completed task"
+    elif old_status != task.status:
+        action_name = "Status changed"
+    else:
+        action_name = "Updated task"
+        
+    log_activity(
+        db=db,
+        user_id=current_user.id,
+        user_name=f"{current_user.first_name} {current_user.last_name}",
+        action=action_name,
+        target=task.title,
+        module="Tasks",
+        old_value=old_status if old_status != task.status else None,
+        new_value=task.status if old_status != task.status else None
+    )
+    
     return _serialize(task, db)
 
 @router.delete("/{task_id}", status_code=204, dependencies=[Depends(RequirePermission("tasks.delete"))])
