@@ -118,13 +118,16 @@ def delete_expense(
 
 @router.get("/summary")
 def read_expense_summary(
+    month: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if not is_finance_user(db, current_user):
         raise HTTPException(status_code=403, detail="Only super admin or finance department can access expenses")
 
-    total_spent = db.query(Expense).all()
+    target_month = month or datetime.now(timezone.utc).strftime("%Y-%m")
+    total_spent = db.query(Expense).filter(Expense.date.startswith(target_month)).all()
+    
     total_amount = sum(e.amount for e in total_spent)
     by_category = {}
     for e in total_spent:
