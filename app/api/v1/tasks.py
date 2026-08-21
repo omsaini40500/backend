@@ -58,6 +58,17 @@ class BulkStatusRequest(BaseModel):
     status: str
 
 def _serialize(task: Task, db: Session = None) -> dict:
+    from datetime import datetime
+    if task.status not in ("done", "pending", "blocked") and task.due_date:
+        try:
+            due_date = datetime.strptime(task.due_date, "%Y-%m-%d").date()
+            if due_date < datetime.now().date():
+                task.status = "pending"
+                if db:
+                    db.commit()
+        except Exception:
+            pass
+
     return {
         "id": task.id,
         "title": task.title,
