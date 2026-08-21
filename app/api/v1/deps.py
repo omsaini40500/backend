@@ -14,7 +14,10 @@ def get_db():
     try:
         yield db
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
 
 def get_token_from_request(request: Request) -> str:
     token = request.cookies.get("access_token")
