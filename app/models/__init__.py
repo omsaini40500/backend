@@ -182,6 +182,15 @@ class Expense(Base):
     created_by = Column(String(50), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+class CompanyBudget(Base):
+    __tablename__ = "company_budgets"
+    id = Column(String(50), primary_key=True, index=True)
+    month = Column(String(7), unique=True, nullable=False, index=True) # e.g. "2026-08"
+    amount = Column(Float, nullable=False, default=0.0)
+    created_by = Column(String(50), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
 class Campaign(Base):
     __tablename__ = "campaigns"
     id = Column(String(50), primary_key=True, index=True)

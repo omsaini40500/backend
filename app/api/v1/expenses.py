@@ -136,29 +136,38 @@ def read_expense_summary(
         "by_category": by_category,
     }
 
-import json
-import os
-
-BUDGET_FILE = "company_budget.json"
+from app.models import CompanyBudget
+import uuid
 
 class BudgetInput(BaseModel):
     amount: float
+    month: Optional[str] = None # e.g. "2026-08". If not provided, defaults to current month
 
 @router.get("/budget")
-def get_company_budget(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if not os.path.exists(BUDGET_FILE):
-        return {"budget": 0.0}
-    try:
-        with open(BUDGET_FILE, "r") as f:
-            data = json.load(f)
-            return {"budget": data.get("budget", 0.0)}
-    except:
-        return {"budget": 0.0}
+def get_company_budget(month: Optional[str] = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    target_month = month or datetime.now(timezone.utc).strftime("%Y-%m")
+    budget = db.query(CompanyBudget).filter(CompanyBudget.month == target_month).first()
+    return {"budget": budget.amount if budget else 0.0, "month": target_month}
 
 @router.post("/budget")
 def set_company_budget(data: BudgetInput, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not is_finance_user(db, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to set budget")
-    with open(BUDGET_FILE, "w") as f:
-        json.dump({"budget": data.amount}, f)
-    return {"budget": data.amount}
+        
+    target_month = data.month or datetime.now(timezone.utc).strftime("%Y-%m")
+    budget = db.query(CompanyBudget).filter(CompanyBudget.month == target_month).first()
+    
+    if budget:
+        budget.amount = data.amount
+        budget.updated_at = datetime.now(timezone.utc)
+    else:
+        budget = CompanyBudget(
+            id=str(uuid.uuid4())[:8],
+            month=target_month,
+            amount=data.amount,
+            created_by=current_user.id
+        )
+        db.add(budget)
+        
+    db.commit()
+    return {"budget": data.amount, "month": target_month}
