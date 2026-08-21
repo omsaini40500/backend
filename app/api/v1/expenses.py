@@ -11,6 +11,14 @@ from app.core.config import get_settings
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 settings = get_settings()
 
+def is_finance_user(db: Session, user: User) -> bool:
+    if user.role == "super_admin": return True
+    if not user.department_id: return False
+    from app.models import Department
+    dept = db.query(Department).filter(Department.id == user.department_id).first()
+    return dept and dept.name.lower() == "finance"
+
+
 
 class ExpenseCreate(BaseModel):
     amount: float
@@ -39,8 +47,8 @@ def read_expenses(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Only super admin can view expenses")
+    if not is_finance_user(db, current_user):
+        raise HTTPException(status_code=403, detail="Only super admin or finance department can access expenses")
 
     expenses = db.query(Expense).order_by(Expense.date.desc()).offset(skip).limit(limit).all()
     return [
@@ -63,6 +71,9 @@ def create_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if not is_finance_user(db, current_user):
+        raise HTTPException(status_code=403, detail="Only super admin or finance department can access expenses")
+
     if not expense_in.description:
         expense_in.description = ""
 
@@ -94,8 +105,8 @@ def delete_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Only super admin can delete expenses")
+    if not is_finance_user(db, current_user):
+        raise HTTPException(status_code=403, detail="Only super admin or finance department can access expenses")
 
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
     if not expense:
@@ -110,8 +121,8 @@ def read_expense_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Only super admin can view expense summary")
+    if not is_finance_user(db, current_user):
+        raise HTTPException(status_code=403, detail="Only super admin or finance department can access expenses")
 
     total_spent = db.query(Expense).all()
     total_amount = sum(e.amount for e in total_spent)
@@ -124,3 +135,30 @@ def read_expense_summary(
         "count": len(total_spent),
         "by_category": by_category,
     }
+
+import json
+import os
+
+BUDGET_FILE = "company_budget.json"
+
+class BudgetInput(BaseModel):
+    amount: float
+
+@router.get("/budget")
+def get_company_budget(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not os.path.exists(BUDGET_FILE):
+        return {"budget": 0.0}
+    try:
+        with open(BUDGET_FILE, "r") as f:
+            data = json.load(f)
+            return {"budget": data.get("budget", 0.0)}
+    except:
+        return {"budget": 0.0}
+
+@router.post("/budget")
+def set_company_budget(data: BudgetInput, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not is_finance_user(db, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to set budget")
+    with open(BUDGET_FILE, "w") as f:
+        json.dump({"budget": data.amount}, f)
+    return {"budget": data.amount}
