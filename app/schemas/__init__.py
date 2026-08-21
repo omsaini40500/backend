@@ -155,7 +155,7 @@ class ActivityLogOut(CamelModel):
     ip: str
     browser: str
     location: str
-    created_at: datetime
+    timestamp: str
 
 class CampaignOut(CamelModel):
     id: str
