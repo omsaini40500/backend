@@ -215,6 +215,10 @@ def update_task(
     if current_user.role not in ("super_admin", "admin") and task.assigned_by != current_user.id and current_user.id not in [a.id for a in task.assignees]:
         raise HTTPException(status_code=403, detail="Not authorized to update this task")
         
+    if data.status is not None and data.status != task.status:
+        if current_user.id not in [a.id for a in task.assignees]:
+            raise HTTPException(status_code=403, detail="Status of task can only be updated by the assignee")
+
     old_status = task.status
         
     for field, value in data.model_dump(exclude_none=True).items():
