@@ -17,6 +17,7 @@ class UserOut(CamelModel):
     email: str
     role: str
     department_id: Optional[str] = None
+    department: Optional[str] = None
     team_id: Optional[str] = None
     client_id: Optional[str] = None
     client_name: Optional[str] = None

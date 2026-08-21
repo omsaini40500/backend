@@ -52,11 +52,16 @@ class User(Base):
     theme = Column(String(20), default="dark")
 
     client = relationship("Client")
+    department_rel = relationship("Department")
     tasks = relationship("Task", secondary=task_assignees, back_populates="assignees")
 
     @property
     def client_name(self):
         return self.client.name if self.client else None
+        
+    @property
+    def department(self):
+        return self.department_rel.name if self.department_rel else None
 
 class Client(Base):
     __tablename__ = "clients"
