@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from typing import List, Optional
 from uuid import uuid4
 from app.api.v1.deps import get_db, get_current_user
-from app.models import Task, User, TaskChecklistItem
+from app.models import Task, User, TaskChecklistItem, RecycleBinItem
 from app.core.permissions import RequirePermission
 from app.schemas.base import CamelModel, PaginatedResponse
 from app.schemas import TaskOut
@@ -281,6 +281,22 @@ def delete_task(
         raise HTTPException(status_code=404, detail="Task not found")
     if current_user.role not in ("super_admin", "admin") and task.assigned_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this task")
+        
+    item_data = {}
+    for c in task.__table__.columns:
+        val = getattr(task, c.name)
+        if hasattr(val, "isoformat"):
+            val = val.isoformat()
+        item_data[c.name] = val
+
+    recycle_item = RecycleBinItem(
+        id=str(uuid4()),
+        item_type="task",
+        item_id=task.id,
+        deleted_by=current_user.id,
+        item_data=item_data
+    )
+    db.add(recycle_item)
     db.delete(task)
     db.commit()
 

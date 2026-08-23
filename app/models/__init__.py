@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, Float, ForeignKey, DateTime, Table, Text
+from sqlalchemy import Column, String, Integer, Boolean, Float, ForeignKey, DateTime, Table, Text, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.db.base import Base
@@ -163,6 +163,7 @@ class RecycleBinItem(Base):
     item_id = Column(String(50))
     deleted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     deleted_by = Column(String(50), ForeignKey("users.id"))
+    item_data = Column(JSON, nullable=True)
 
 class Approval(Base):
     __tablename__ = "approvals"

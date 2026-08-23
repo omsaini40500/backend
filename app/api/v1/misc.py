@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import uuid4
 from app.api.v1.deps import get_db, get_current_user
-from app.models import Department, Team, Client, Notification, ActivityLog, RecycleBinItem, User, Project, Campaign
+from app.models import Department, Team, Client, Notification, ActivityLog, RecycleBinItem, User, Project, Campaign, Task
 from app.schemas import DepartmentOut, TeamOut, ClientOut, ClientCreate, ClientUpdate, NotificationOut, ActivityLogOut
 
 router_depts = APIRouter(prefix="/departments", tags=["departments"])
@@ -165,3 +165,24 @@ def permanently_delete(item_id: str, db: Session = Depends(get_db), current_user
     db.delete(item)
     db.commit()
     return
+
+@router_recycle_bin.post("/{item_id}/restore", status_code=status.HTTP_200_OK)
+def restore_item(item_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role not in ("super_admin", "admin"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    item = db.query(RecycleBinItem).filter(RecycleBinItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+        
+    if item.item_type == "task" and item.item_data:
+        # Create a new Task instance from the JSON data
+        task_data = item.item_data
+        
+        # Remove empty keys if any, or just pass directly
+        new_task = Task(**task_data)
+        db.add(new_task)
+    
+    db.delete(item)
+    db.commit()
+    return {"message": "Restored successfully"}
