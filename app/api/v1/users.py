@@ -161,3 +161,25 @@ def delete_user(
     db.delete(user)
     db.commit()
     return
+
+@router.post("/{user_id}/unblock", response_model=UserOut)
+def unblock_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only super admins can unblock users.")
+        
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.failed_login_attempts = 0
+    user.is_blocked = False
+    db.commit()
+    db.refresh(user)
+    
+    user.tasks_completed = db.query(Task).filter(Task.assignees.any(id=user.id), Task.status == "done").count()
+    user.tasks_total = db.query(Task).filter(Task.assignees.any(id=user.id)).count()
+    return user

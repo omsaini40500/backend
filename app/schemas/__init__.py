@@ -22,6 +22,7 @@ class UserOut(CamelModel):
     client_id: Optional[str] = None
     client_name: Optional[str] = None
     is_active: bool
+    is_blocked: bool = False
     created_at: datetime
     last_active_at: Optional[datetime] = None
     tasks_completed: int = 0

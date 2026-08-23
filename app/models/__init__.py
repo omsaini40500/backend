@@ -47,6 +47,8 @@ class User(Base):
     team_id = Column(String(50), ForeignKey("teams.id"), nullable=True)
     client_id = Column(String(50), ForeignKey("clients.id"), nullable=True)
     is_active = Column(Boolean, default=True)
+    failed_login_attempts = Column(Integer, default=0)
+    is_blocked = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_active_at = Column(DateTime, nullable=True)
     theme = Column(String(20), default="dark")

@@ -75,12 +75,40 @@ _reset_tokens: dict = {}
 @router.post("/login", response_model=Token)
 def login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    if getattr(user, 'is_blocked', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account blocked. Please contact the super admin."
+        )
+
+    if not verify_password(form_data.password, user.hashed_password):
+        # Increment failed attempts
+        user.failed_login_attempts = getattr(user, 'failed_login_attempts', 0) + 1
+        if user.failed_login_attempts >= 3:
+            user.is_blocked = True
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account blocked due to 3 failed password attempts. Please contact the super admin."
+            )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Incorrect password. {3 - user.failed_login_attempts} attempts remaining.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Reset attempts on success
+    user.failed_login_attempts = 0
+    db.commit()
+
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"email": user.email, "user_id": user.id, "role": user.role},
