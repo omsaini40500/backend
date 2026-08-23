@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 from app.api.v1.deps import get_db, get_current_user
@@ -30,16 +30,25 @@ def _get_period_bounds(period: str):
 def read_report_summary(period: str = "monthly", db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     start, end = _get_period_bounds(period)
 
-    total_tasks = db.query(func.count(Task.id)).scalar() or 0
-    completed_tasks = db.query(func.count(Task.id)).filter(Task.status == "done").scalar() or 0
-    progress_sum = db.query(func.coalesce(func.sum(Task.progress), 0)).scalar() or 0
-    avg_hours = float(db.query(func.coalesce(func.avg(Task.spent_hours), 0)).scalar() or 0)
+    task_query = db.query(Task)
+    if current_user.role != "super_admin":
+        task_query = task_query.filter(
+            or_(
+                Task.assignees.any(User.id == current_user.id),
+                Task.assigned_by == current_user.id
+            )
+        )
+
+    total_tasks = task_query.with_entities(func.count(Task.id)).scalar() or 0
+    completed_tasks = task_query.filter(Task.status == "done").with_entities(func.count(Task.id)).scalar() or 0
+    progress_sum = task_query.with_entities(func.coalesce(func.sum(Task.progress), 0)).scalar() or 0
+    avg_hours = float(task_query.with_entities(func.coalesce(func.avg(Task.spent_hours), 0)).scalar() or 0)
 
     prev_start = start - (end - start)
-    prev_total = db.query(func.count(Task.id)).filter(Task.created_at >= prev_start, Task.created_at < start).scalar() or 0
-    prev_completed = db.query(func.count(Task.id)).filter(Task.status == "done", Task.created_at >= prev_start, Task.created_at < start).scalar() or 0
-    prev_hours = float(db.query(func.coalesce(func.avg(Task.spent_hours), 0)).filter(Task.created_at >= prev_start, Task.created_at < start).scalar() or 0)
-    prev_progress = db.query(func.coalesce(func.sum(Task.progress), 0)).filter(Task.created_at >= prev_start, Task.created_at < start).scalar() or 0
+    prev_total = task_query.filter(Task.created_at >= prev_start, Task.created_at < start).with_entities(func.count(Task.id)).scalar() or 0
+    prev_completed = task_query.filter(Task.status == "done", Task.created_at >= prev_start, Task.created_at < start).with_entities(func.count(Task.id)).scalar() or 0
+    prev_hours = float(task_query.filter(Task.created_at >= prev_start, Task.created_at < start).with_entities(func.coalesce(func.avg(Task.spent_hours), 0)).scalar() or 0)
+    prev_progress = task_query.filter(Task.created_at >= prev_start, Task.created_at < start).with_entities(func.coalesce(func.sum(Task.progress), 0)).scalar() or 0
 
     if prev_total > 0:
         tasks_change = int(round(((total_tasks - prev_total) / prev_total) * 100))

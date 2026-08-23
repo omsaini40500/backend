@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.api.v1.deps import get_db, get_current_user
@@ -68,8 +69,18 @@ def read_projects(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    total = db.query(Project).count()
-    projects = db.query(Project).options(
+    query = db.query(Project)
+    
+    if current_user.role != "super_admin":
+        query = query.filter(
+            or_(
+                Project.manager_id == current_user.id,
+                Project.team_members.any(User.id == current_user.id)
+            )
+        )
+        
+    total = query.count()
+    projects = query.options(
         joinedload(Project.team_members),
         joinedload(Project.tasks)
     ).offset(skip).limit(limit).all()
