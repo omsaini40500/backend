@@ -14,8 +14,13 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("", response_model=PaginatedResponse[UserOut], dependencies=[Depends(RequirePermission("users.read"))])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    total = db.query(User).count()
-    users = db.query(User).options(joinedload(User.tasks)).offset(skip).limit(limit).all()
+    query = db.query(User)
+    
+    if current_user.department and current_user.department.lower() == "shalom":
+        query = query.filter(User.department_id == current_user.department_id)
+        
+    total = query.count()
+    users = query.options(joinedload(User.tasks)).offset(skip).limit(limit).all()
 
     for u in users:
         u.tasks_completed = sum(1 for t in u.tasks if t.status == 'done') if hasattr(u, 'tasks') else 0
