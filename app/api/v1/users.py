@@ -79,8 +79,12 @@ def create_user(
         client_id=data.client_id,
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered or integrity error")
     user.tasks_completed = 0
     user.tasks_total = 0
     return user
