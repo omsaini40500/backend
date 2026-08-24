@@ -16,7 +16,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     query = db.query(User)
     
-    if current_user.department and current_user.department.lower() == "shalom":
+    if current_user.department and current_user.department.lower() in ("shalom", "shellom"):
         query = query.filter(User.department_id == current_user.department_id)
         
     total = query.count()
