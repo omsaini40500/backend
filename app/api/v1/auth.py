@@ -136,6 +136,27 @@ def login(request: Request, response: Response, form_data: OAuth2PasswordRequest
     ip = request.client.host if request.client else "127.0.0.1"
     browser = request.headers.get("user-agent", "Unknown")
     
+    # Determine location
+    gps_header = request.headers.get("X-GPS-Location")
+    if gps_header:
+        location = f"{gps_header} (GPS)"
+    else:
+        location = f"{ip} (IP)"
+        if ip != "127.0.0.1" and ip != "localhost":
+            try:
+                import urllib.request
+                import json
+                req = urllib.request.Request(f"http://ip-api.com/json/{ip}?fields=city,country,status", headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=2) as response:
+                    data = json.loads(response.read().decode())
+                    if data.get("status") == "success":
+                        city = data.get("city", "")
+                        country = data.get("country", "")
+                        if city or country:
+                            location = f"{city}, {country} (IP)".strip(", ")
+            except Exception:
+                pass
+
     log_activity(
         db=db,
         user_id=user.id,
@@ -144,7 +165,8 @@ def login(request: Request, response: Response, form_data: OAuth2PasswordRequest
         target="System",
         module="Authentication",
         ip=ip,
-        browser=browser
+        browser=browser,
+        location=location
     )
     from app.models import Task, Notification, task_assignees
     import uuid
