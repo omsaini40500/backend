@@ -146,7 +146,29 @@ def login(request: Request, response: Response, form_data: OAuth2PasswordRequest
         ip=ip,
         browser=browser
     )
+    from app.models import Task, Notification, task_assignees
+    import uuid
+    from datetime import datetime, timezone
     
+    pending_tasks_count = db.query(Task).join(task_assignees).filter(
+        task_assignees.c.user_id == user.id,
+        Task.status != 'Done'
+    ).count()
+    
+    if pending_tasks_count > 0:
+        notif = Notification(
+            id=str(uuid.uuid4())[:8],
+            user_id=user.id,
+            type="reminder",
+            title="Pending Tasks Reminder",
+            message=f"You have {pending_tasks_count} pending task(s). Please review them.",
+            read=False,
+            created_at=datetime.now(timezone.utc),
+            link="/tasks"
+        )
+        db.add(notif)
+        db.commit()
+
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 @router.post("/refresh", response_model=Token)

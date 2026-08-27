@@ -408,3 +408,32 @@ def bulk_status_update(
         task.status = data.status
     db.commit()
     return [_serialize(t, db) for t in tasks]
+
+@router.post('/reminders/daily')
+def trigger_daily_reminders(db: Session = Depends(get_db)):
+    from app.models import User, Notification, task_assignees
+    import uuid
+    from datetime import datetime, timezone
+    
+    users = db.query(User).all()
+    notifications = []
+    
+    for user in users:
+        pending_tasks = db.query(Task).join(task_assignees).filter(task_assignees.c.user_id == user.id, Task.status != 'Done').count()
+        if pending_tasks > 0:
+            notif = Notification(
+                id=str(uuid.uuid4())[:8],
+                user_id=user.id,
+                type='reminder',
+                title='Daily Pending Tasks Reminder',
+                message=f'You have {pending_tasks} pending task(s). Please review them.',
+                read=False,
+                created_at=datetime.now(timezone.utc),
+                link='/tasks'
+            )
+            db.add(notif)
+            notifications.append(notif)
+    
+    db.commit()
+    return {'message': f'Sent {len(notifications)} reminders'}
+
