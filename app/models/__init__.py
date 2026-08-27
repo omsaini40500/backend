@@ -330,4 +330,4 @@ class ClientScorecard(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-    client = relationship("User", backref="scorecard", foreign_keys=[client_id])
+
