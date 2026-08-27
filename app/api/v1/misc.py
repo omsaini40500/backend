@@ -133,7 +133,7 @@ def read_logs(db: Session = Depends(get_db), current_user: User = Depends(get_cu
             "ip": l.ip or "127.0.0.1",
             "browser": l.browser or "Unknown",
             "location": l.location or "Unknown",
-            "timestamp": l.created_at.strftime("%b %d, %Y %I:%M %p") if l.created_at else "Unknown"
+            "timestamp": l.created_at.isoformat() if l.created_at else "Unknown"
         })
     return result
 
