@@ -320,3 +320,14 @@ class AutomationHistory(Base):
     result = Column(String(50))
     time = Column(String(100))
     detail = Column(Text)
+
+class ClientScorecard(Base):
+    __tablename__ = "client_scorecards"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    client_id = Column(String(50), index=True, unique=True)
+    data = Column(JSON, default=list) # Array of rows
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    client = relationship("User", backref="scorecard", foreign_keys=[client_id])

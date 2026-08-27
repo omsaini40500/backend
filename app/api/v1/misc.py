@@ -186,3 +186,31 @@ def restore_item(item_id: str, db: Session = Depends(get_db), current_user: User
     db.delete(item)
     db.commit()
     return {"message": "Restored successfully"}
+
+from app.models import ClientScorecard
+from typing import Dict, Any
+
+@router_clients.get("/{client_id}/scorecard")
+def get_client_scorecard(client_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from fastapi import HTTPException
+    if current_user.role == "client" and current_user.id != client_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this data")
+    scorecard = db.query(ClientScorecard).filter(ClientScorecard.client_id == client_id).first()
+    if not scorecard:
+        return {"data": []}
+    return {"data": scorecard.data}
+
+@router_clients.put("/{client_id}/scorecard")
+def update_client_scorecard(client_id: str, payload: Dict[str, Any], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from fastapi import HTTPException
+    if current_user.role == "client":
+        raise HTTPException(status_code=403, detail="Clients cannot edit scorecards")
+    scorecard = db.query(ClientScorecard).filter(ClientScorecard.client_id == client_id).first()
+    if not scorecard:
+        scorecard = ClientScorecard(client_id=client_id, data=payload.get("data", []))
+        db.add(scorecard)
+    else:
+        scorecard.data = payload.get("data", [])
+    db.commit()
+    db.refresh(scorecard)
+    return {"data": scorecard.data}
