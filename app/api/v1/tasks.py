@@ -242,12 +242,18 @@ def update_task(
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    if current_user.role not in ("super_admin", "admin") and task.assigned_by != current_user.id and current_user.id not in [a.id for a in task.assignees]:
-        raise HTTPException(status_code=403, detail="Not authorized to update this task")
         
-    if data.status is not None and data.status != task.status:
-        if current_user.role not in ("super_admin", "admin") and task.assigned_by != current_user.id and current_user.id not in [a.id for a in task.assignees]:
-            raise HTTPException(status_code=403, detail="Status of task can only be updated by the assignee, creator, or admin")
+    provided_fields = [k for k, v in data.model_dump(exclude_none=True).items() if k not in ("status", "progress", "pending_reason")]
+    is_only_status_update = len(provided_fields) == 0
+
+    if is_only_status_update:
+        # Status can ONLY be updated by the assignee
+        if current_user.id not in [a.id for a in task.assignees]:
+            raise HTTPException(status_code=403, detail="Only the assignee can update the task status")
+    else:
+        # Edits to task details can ONLY be done by the creator (assigned_by)
+        if task.assigned_by != current_user.id:
+            raise HTTPException(status_code=403, detail="Only the user who assigned the task can edit it")
 
     old_status = task.status
         
@@ -295,8 +301,8 @@ def delete_task(
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    if current_user.role not in ("super_admin", "admin") and task.assigned_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this task")
+    if task.assigned_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the user who assigned the task can delete it")
         
     item_data = {}
     for c in task.__table__.columns:
