@@ -80,6 +80,7 @@ def _serialize(task: Task, db: Session = None) -> dict:
         "estimatedDays": task.estimated_days or 0,
         "spentHours": task.spent_hours or 0,
         "assignedBy": task.assigned_by_user.name if task.assigned_by_user else task.assigned_by,
+        "assignedById": task.assigned_by,
         "projectId": task.project_id,
         "departmentId": task.department_id,
         "category": task.category or "",
