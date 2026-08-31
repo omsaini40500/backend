@@ -20,7 +20,7 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), c
         query = query.filter(User.department_id == current_user.department_id)
         
     total = query.count()
-    users = query.options(joinedload(User.tasks)).offset(skip).limit(limit).all()
+    users = query.order_by(User.name.asc()).options(joinedload(User.tasks)).offset(skip).limit(limit).all()
 
     for u in users:
         u.tasks_completed = sum(1 for t in u.tasks if t.status == 'done') if hasattr(u, 'tasks') else 0
