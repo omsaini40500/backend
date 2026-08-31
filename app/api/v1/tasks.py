@@ -301,8 +301,8 @@ def delete_task(
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    if current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Only Super Admin can delete tasks")
+    if current_user.role != "super_admin" and task.assigned_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Only Super Admin or the task creator can delete tasks")
         
     item_data = {}
     for c in task.__table__.columns:
