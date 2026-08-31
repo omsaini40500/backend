@@ -293,7 +293,7 @@ def update_task(
     
     return _serialize(task, db)
 
-@router.delete("/{task_id}", status_code=204, dependencies=[Depends(RequirePermission("tasks.delete"))])
+@router.delete("/{task_id}", status_code=204)
 def delete_task(
     task_id: str,
     db: Session = Depends(get_db),
