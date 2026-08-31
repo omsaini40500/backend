@@ -107,13 +107,29 @@ def read_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    is_shalom = current_user.department and current_user.department.lower() in ("shalom", "shellom")
+    
     if current_user.role == "super_admin":
         query = db.query(Task)
+    elif is_shalom:
+        # Shellom users see tasks assigned to them, created by them, OR assigned to anyone else in Shellom
+        query = db.query(Task).filter(
+            or_(
+                Task.assigned_by == current_user.id,
+                Task.assignees.any(User.department_id == current_user.department_id)
+            )
+        )
     else:
+        # Regular non-Shellom users see their own tasks, BUT we must hide Shellom tasks from them 
+        # unless they explicitly created them.
+        from app.models import Department
         query = db.query(Task).filter(
             or_(
                 Task.assignees.any(User.id == current_user.id),
-                Task.assigned_by == current_user.id,
+                and_(
+                    Task.assigned_by == current_user.id,
+                    ~Task.assignees.any(User.department_rel.has(Department.name.in_(["Shalom", "Shellom", "shalom", "shellom"])))
+                )
             )
         )
     if assigned_to:
